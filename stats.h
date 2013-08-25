@@ -5,32 +5,7 @@
 
 #include "dvect.h"
 
-double stats_sum(const dvect & v);
-double stats_mean(const dvect & v);
-double stats_stddev(const dvect & v);
-double stats_median(const dvect & v);
-double stats_min(const dvect & v);
-double stats_max(const dvect & v);
-
 class kmeansresult {
- private:
-  lvect counts;
-  ivect assignments;
-  double sd_distortion;
-  double d_distortion;
-
- public:
-  lvect get_counts() { return counts; };
-  ivect get_assignments() { return assignments; };
-  double get_squared_distance_distortion() { return sd_distortion; }
-  double get_distortion() { return d_distortion; }
-  void set_counts(lvect c) { counts = c; };
-  void set_assignments(ivect a) { assignments = a; };
-  void set_squared_distance_distortion(double d) { sd_distortion = d; };
-  void set_distortion(double d) { d_distortion = d; };
-};
-
-class kmeansresult2 {
  private:
   lvect *counts;
   ivect *assignments;
@@ -41,8 +16,8 @@ class kmeansresult2 {
   bool centroids_set;
 
  public:
-  kmeansresult2(int k);
-  ~kmeansresult2();
+  kmeansresult(int k);
+  ~kmeansresult();
   const lvect* const get_counts() { return counts; };
   const ivect* const get_assignments() { return assignments; };
   const dvectlist* const get_centroids() { return centroids; };
@@ -55,7 +30,13 @@ class kmeansresult2 {
   void increment_count(int index);
 };
 
+double stats_sum(const dvect & v);
+double stats_mean(const dvect & v);
+double stats_stddev(const dvect & v);
+double stats_median(const dvect & v);
+double stats_min(const dvect & v);
+double stats_max(const dvect & v);
 dvect stats_vector_centroid(const dvectlist & vectors);
-dvectlist stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds = 20);
+void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds = 20);
 
 #endif

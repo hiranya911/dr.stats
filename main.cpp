@@ -143,12 +143,12 @@ void compute_vector_kmeans(const string & file, const int k) {
     return;
   }
 
-  kmeansresult result;
-  dvectlist centroids = stats_vector_kmeans(vectors, k, result);
+  kmeansresult result(k);
+  stats_vector_kmeans(vectors, k, result);
 
   for (int i = 0; i < k; i++) {
-    cout << "Cluster-" << i << ": " << result.get_counts().at(i) << " entries [ Centroid = "
-	 << dvect_tostring(centroids.at(i)) << " ]\n";
+    cout << "Cluster-" << i << ": " << result.get_counts()->at(i) << " entries [ Centroid = "
+	 << dvect_tostring(result.get_centroids()->at(i)) << " ]\n";
   }
   cout << endl << "Distortion: " << result.get_distortion() << endl;
   cout << "Squared Distance Distortion: " << result.get_squared_distance_distortion() << endl;

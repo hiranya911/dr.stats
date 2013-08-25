@@ -20,13 +20,13 @@ double within_cluster_distance(const dvectlist & vectors, const ivect & assignme
 void update_centroids(dvectlist & centroids, const dvectlist & vectors, const ivect & assignments);
 double euclidean_distance(const dvect & v1, const dvect & v2);
 
-kmeansresult2::kmeansresult2(int k) {
+kmeansresult::kmeansresult(int k) {
   counts = new lvect(k, 0L);
   assignments_set = false;
   centroids_set = false;
 }
 
-kmeansresult2::~kmeansresult2() {
+kmeansresult::~kmeansresult() {
   delete counts;
   if (assignments_set) {
     delete assignments;
@@ -36,17 +36,23 @@ kmeansresult2::~kmeansresult2() {
   }
 }
 
-void kmeansresult2::set_assignments(ivect* a) {
+void kmeansresult::set_assignments(ivect* a) {
+  if (assignments_set) {
+    delete assignments;
+  }
   assignments = a;
   assignments_set = true;
 }
 
-void kmeansresult2::set_centroids(dvectlist* c) {
+void kmeansresult::set_centroids(dvectlist* c) {
+  if (centroids_set) {
+    delete centroids;
+  }
   centroids = c;
   centroids_set = true;
 }
 
-void kmeansresult2::increment_count(int index) {
+void kmeansresult::increment_count(int index) {
   counts->at(index)++;
 }
 
@@ -132,22 +138,16 @@ dvect stats_vector_centroid(const dvectlist & vectors) {
   return result;
 }
 
-dvectlist stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds) {
+void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds) {
   long dvect_size = (long) vectors.front().size();
   long n = (long) vectors.size();
   
-  lvect counts(k, 0L);
-  ivect assignments_final;
-  assignments_final.reserve(n);
-
-  dvectlist centroids_final;
-  double wcss_final = std::numeric_limits<double>::max();
-
+  result.set_squared_distance_distortion(std::numeric_limits<double>::max());
   srand(time(NULL));
 
   for (int rounds_count = 0; rounds_count < rounds; rounds_count++) {
-    dvectlist centroids;
-    centroids.reserve(k);
+    dvectlist* centroids = new dvectlist;
+    centroids->reserve(k);
 
     // Initialize the clusters
     std::set<int> centroid_indices;
@@ -155,52 +155,51 @@ dvectlist stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresu
       centroid_indices.insert(rand() % n);
     }
     for (std::set<int>::iterator it = centroid_indices.begin(); it != centroid_indices.end(); it++) {
-      centroids.push_back(vectors.at(*it));
+      centroids->push_back(vectors.at(*it));
     }
 
     double wcss = -1.0;
     while (true) {
-      ivect assignments;
-      assignments.reserve(n);
+      ivect* assignments = new ivect;
+      assignments->reserve(n);
       for (dvectlistciter it = vectors.begin(); it != vectors.end(); it++) {
 	long cluster = 0;
 	double min_squared_distance = std::numeric_limits<double>::max();
 	for (int i = 0; i < k; i++) {
-	  double distance = euclidean_distance(*it, centroids.at(i));
+	  double distance = euclidean_distance(*it, centroids->at(i));
 	  double squared_distance = distance * distance;
 	  if (squared_distance < min_squared_distance) {
 	    cluster = i;
 	    min_squared_distance = squared_distance;
 	  }
 	}
-	assignments.push_back(cluster);
+	assignments->push_back(cluster);
       }
       
-      double new_wcss = within_cluster_squared_sum(vectors, assignments, centroids);
+      double new_wcss = within_cluster_squared_sum(vectors, *assignments, *centroids);
       if (new_wcss != wcss) {
 	wcss = new_wcss;
-	update_centroids(centroids, vectors, assignments);
+	update_centroids(*centroids, vectors, *assignments);
+	delete assignments;
       } else {
-	if (wcss < wcss_final) {
-	  wcss_final = wcss;
-	  centroids_final = centroids;
-	  assignments_final = assignments;
+	if (wcss < result.get_squared_distance_distortion()) {
+	  result.set_squared_distance_distortion(wcss);
+	  result.set_centroids(centroids);
+	  result.set_assignments(assignments);
+	} else {
+	  delete assignments;
+	  delete centroids;
 	}
 	break;
       }
     }
   }
 
-  double distortion = within_cluster_distance(vectors, assignments_final, centroids_final);
+  double distortion = within_cluster_distance(vectors, *(result.get_assignments()), *(result.get_centroids()));
   for (long i = 0; i < n; i++) {
-    counts[assignments_final.at(i)]++;
+    result.increment_count(result.get_assignments()->at(i));
   }
-
-  result.set_counts(counts);
-  result.set_assignments(assignments_final);
-  result.set_squared_distance_distortion(wcss_final);
   result.set_distortion(distortion);
-  return centroids_final;
 }
 
 void update_centroids(dvectlist & centroids, const dvectlist & vectors, const ivect & assignments) {
