@@ -11,7 +11,7 @@ using std::string;
 
 void compute_simple_mode(const string & file);
 void compute_vector_centroid(const string & file);
-void compute_vector_kmeans(const string & file, const int k);
+void compute_vector_kmeans(const string & file, const int k, const int rounds, const bool verbose);
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
@@ -27,6 +27,8 @@ int main(int argc, char** argv) {
     ("precision,p", po::value<int>(&precision), "Decimal point precision (for printing on the console)")
     ("input,i", po::value<string>(&input_file)->required(), "Input file")
     ("clusters,k", po::value<int>(), "Number of clusters (used for kmeans)")
+    ("rounds,r", po::value<int>(), "Number of rounds to run the calculation")
+    ("verbose,v", "Enable verbose output (only supported by some modes)")
     ;
 
   po::positional_options_description pos_desc; 
@@ -56,11 +58,20 @@ int main(int argc, char** argv) {
     } else if (mode == "kmeans") {
       if (vm.count("clusters")) {
 	int k = vm["clusters"].as<int>();
-	compute_vector_kmeans(input_file, k);
+	int rounds = 20;
+	if (vm.count("rounds")) {
+	  rounds = vm["rounds"].as<int>();
+	}
+	bool verbose = false;
+	if (vm.count("verbose")) {
+	  verbose = true;
+	}
+	compute_vector_kmeans(input_file, k, rounds, verbose);
       } else {
 	cerr << "Error: k is required but missing\n";
 	return 1;
-      } 
+      }
+
     } else {
       cerr << "Unsupported calculation mode: " << mode << endl;
       return 1;
@@ -127,11 +138,15 @@ void compute_vector_centroid(const string & file) {
   dvect_print(result);
 }
 
-void compute_vector_kmeans(const string & file, const int k) {
+void compute_vector_kmeans(const string & file, const int k, const int rounds, const bool verbose) {
   if (k < 1) {
     cerr << "Cluster count (k) must be greater than 0\n";
     return;
+  } else if (rounds < 1) {
+    cerr << "Number of rounds must be greater than 0\n";
+    return;
   }
+
   dvectlist vectors;
   long n = dvect_load(file, vectors);
 
@@ -144,12 +159,26 @@ void compute_vector_kmeans(const string & file, const int k) {
   }
 
   kmeansresult result(k);
-  stats_vector_kmeans(vectors, k, result);
+  stats_vector_kmeans(vectors, k, result, rounds);
 
   for (int i = 0; i < k; i++) {
     cout << "Cluster-" << i << ": " << result.get_counts()->at(i) << " entries [ Centroid = "
 	 << dvect_tostring(result.get_centroids()->at(i)) << " ]\n";
   }
   cout << endl << "Distortion: " << result.get_distortion() << endl;
+  cout << "Average Distortion: " << result.get_distortion() / (long) vectors.size() << endl;
   cout << "Squared Distance Distortion: " << result.get_squared_distance_distortion() << endl;
+
+  if (verbose) {
+    cout << endl;
+    for (int i = 0; i < k; i++) {
+      cout << "Cluster-" << i << ":\n";
+      for (long j = 0; j < (long) vectors.size(); j++) {
+	if (i == result.get_assignments()->at(j)) {
+	  cout << "  " << dvect_tostring(vectors.at(j)) << endl;
+	}
+      } 
+      cout << endl;
+    }
+  }
 }

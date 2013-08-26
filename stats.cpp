@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <cmath>
@@ -18,7 +17,6 @@ void validate_vector(const dvect & v);
 double within_cluster_squared_sum(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids);
 double within_cluster_distance(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids);
 void update_centroids(dvectlist* const centroids, const dvectlist & vectors, const ivect* const assignments);
-double euclidean_distance(const dvect & v1, const dvect & v2);
 
 kmeansresult::kmeansresult(int k) {
   counts = new lvect(k, 0L);
@@ -166,7 +164,7 @@ void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & 
 	long cluster = 0;
 	double min_squared_distance = std::numeric_limits<double>::max();
 	for (int i = 0; i < k; i++) {
-	  double distance = euclidean_distance(vectors.at(v), centroids->at(i));
+	  double distance = stats_vector_euclidean_distance(vectors.at(v), centroids->at(i));
 	  double squared_distance = distance * distance;
 	  if (squared_distance < min_squared_distance) {
 	    cluster = i;
@@ -206,6 +204,19 @@ void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & 
   result.set_distortion(distortion);
 }
 
+double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2) {
+  if (v1.size() != v2.size()) {
+    std::stringstream ss;
+    ss << "Vector size mismatch; Expected: " << v1.size() << ", Found: " << v2.size();
+    throw std::runtime_error(ss.str());
+  }
+  double ss = 0.0;
+  for (long i = 0; i < (long) v1.size(); i++) {
+    ss += (v1.at(i) - v2.at(i)) * (v1.at(i) - v2.at(i));
+  }
+  return sqrt(ss); 
+}
+
 void update_centroids(dvectlist* const centroids, const dvectlist & vectors, const ivect* const assignments) {
   int k = (int) centroids->size();
   long v_size = (long) vectors.front().size();
@@ -232,7 +243,7 @@ void update_centroids(dvectlist* const centroids, const dvectlist & vectors, con
 double within_cluster_squared_sum(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids) {
   double wcss = 0.0;
   for (long i = 0; i < (long) vectors.size(); i++) {
-    double distance = euclidean_distance(vectors.at(i), centroids->at(assignments->at(i)));
+    double distance = stats_vector_euclidean_distance(vectors.at(i), centroids->at(assignments->at(i)));
     wcss += distance * distance;
   }
   return wcss;
@@ -241,22 +252,9 @@ double within_cluster_squared_sum(const dvectlist & vectors, const ivect* const 
 double within_cluster_distance(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids) {
   double wcd = 0.0;
   for (long i = 0; i < (long) vectors.size(); i++) {
-    wcd += euclidean_distance(vectors.at(i), centroids->at(assignments->at(i)));
+    wcd += stats_vector_euclidean_distance(vectors.at(i), centroids->at(assignments->at(i)));
   }
   return wcd;
-}
-
-double euclidean_distance(const dvect & v1, const dvect & v2) {
-  if (v1.size() != v2.size()) {
-    std::stringstream ss;
-    ss << "Vector size mismatch; Expected: " << v1.size() << ", Found: " << v2.size();
-    throw std::runtime_error(ss.str());
-  }
-  double ss = 0.0;
-  for (long i = 0; i < (long) v1.size(); i++) {
-    ss += (v1.at(i) - v2.at(i)) * (v1.at(i) - v2.at(i));
-  }
-  return sqrt(ss); 
 }
 
 void validate_vector(const dvect & v) {
