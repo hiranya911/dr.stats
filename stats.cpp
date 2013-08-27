@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <cmath>
@@ -115,10 +114,8 @@ double stats_max(const dvect & v) {
   return max;
 }
 
-dvect stats_vector_centroid(const dvectlist & vectors) {
-  long size = (long) vectors.size();
+dvect stats_vector_add(const dvectlist & vectors) {
   long dvect_size = (long) vectors.front().size();
-  long vcount = 1L;
   dvect result(dvect_size, 0.0);
   for (dvectlistciter it = vectors.begin(); it != vectors.end(); it++) {
     if (dvect_size != (long) (*it).size()) {
@@ -129,13 +126,31 @@ dvect stats_vector_centroid(const dvectlist & vectors) {
     for (long i = 0; i < dvect_size; i++) {
       result[i] += (*it)[i];
     }
-    vcount++;
   }
+  return result;
+}
+
+dvect stats_vector_centroid(const dvectlist & vectors) {
+  long size = (long) vectors.size();
+  long dvect_size = (long) vectors.front().size();
+  dvect result = stats_vector_add(vectors);
   for (long i = 0; i < dvect_size; i++) {
     result[i] /= size;
   }
   return result;
 }
+
+double stats_vector_dot_product(const dvect & v1, const dvect & v2) {
+  if (v1.size() != v2.size()) {
+    throw std::runtime_error("Vector sizes do not match");
+  }
+  long size = (long) v1.size();
+  double sum = 0.0;
+  for (long i = 0; i < size; i++) {
+    sum += v1.at(i) * v2.at(i);
+  }
+  return sum;
+} 
 
 void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds) {
   if (k < 1) {

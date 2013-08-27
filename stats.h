@@ -36,6 +36,8 @@ double stats_stddev(const dvect & v);
 double stats_median(const dvect & v);
 double stats_min(const dvect & v);
 double stats_max(const dvect & v);
+dvect stats_vector_add(const dvectlist & vectors);
+double stats_vector_dot_product(const dvect & v1, const dvect & v2);
 dvect stats_vector_centroid(const dvectlist & vectors);
 void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds = 20);
 double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2);
