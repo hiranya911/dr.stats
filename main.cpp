@@ -1,4 +1,6 @@
 #include <iostream>
+#include <cstdlib>
+#include <limits>
 
 #include "boost/program_options.hpp"
 #include "dvect.h"
@@ -12,6 +14,7 @@ using std::string;
 void compute_simple_mode(const string & file);
 void compute_vector_centroid(const string & file);
 void compute_vector_kmeans(const string & file, const int k, const int rounds, const bool verbose);
+void compute_vector_xmeans(const string & file, const int k_min, const int k_max, const int rounds, const bool verbose);
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
@@ -26,7 +29,7 @@ int main(int argc, char** argv) {
     ("mode,m", po::value<string>(&mode)->required(), "Calculation mode")
     ("precision,p", po::value<int>(&precision), "Decimal point precision (for printing on the console)")
     ("input,i", po::value<string>(&input_file)->required(), "Input file")
-    ("clusters,k", po::value<int>(), "Number of clusters (used for kmeans)")
+    ("clusters,k", po::value<string>(), "Number of clusters or cluster range (used for kmeans)")
     ("rounds,r", po::value<int>(), "Number of rounds to run the calculation")
     ("verbose,v", "Enable verbose output (only supported by some modes)")
     ;
@@ -57,7 +60,8 @@ int main(int argc, char** argv) {
       compute_vector_centroid(input_file);
     } else if (mode == "kmeans") {
       if (vm.count("clusters")) {
-	int k = vm["clusters"].as<int>();
+	string k_str = vm["clusters"].as<string>();
+	int k = atoi(k_str.c_str());
 	int rounds = 20;
 	if (vm.count("rounds")) {
 	  rounds = vm["rounds"].as<int>();
@@ -71,7 +75,36 @@ int main(int argc, char** argv) {
 	cerr << "Error: k is required but missing\n";
 	return 1;
       }
+    } else if (mode == "xmeans") {
+      if (vm.count("clusters")) {
+	string k_str = vm["clusters"].as<string>();
+	std::stringstream ss(k_str);
+	string item;
+	std::vector<string> elems;
+	while (std::getline(ss, item, ':')) {
+	  elems.push_back(item);
+	}
+	if ((int) elems.size() != 2) {
+	  cerr << "k value must be specified as a range of the form k_min:k_max\n";
+	  return 1;
+	}
 
+	int k_min = atoi(elems.at(0).c_str());
+	int k_max = atoi(elems.at(1).c_str());
+	
+	int rounds = 20;
+	if (vm.count("rounds")) {
+	  rounds = vm["rounds"].as<int>();
+	}
+	bool verbose = false;
+	if (vm.count("verbose")) {
+	  verbose = true;
+	}
+	compute_vector_xmeans(input_file, k_min, k_max, rounds, verbose);
+      } else {
+	cerr << "Error: k (range specifier) is required but missing\n";
+	return 1;
+      }
     } else {
       cerr << "Unsupported calculation mode: " << mode << endl;
       return 1;
@@ -180,5 +213,79 @@ void compute_vector_kmeans(const string & file, const int k, const int rounds, c
       } 
       cout << endl;
     }
+  }
+}
+
+void compute_vector_xmeans(const string & file, const int k_min, const int k_max, const int rounds, const bool verbose) {
+  if (k_min > k_max) {
+    cerr << "k_max must be greater than or equal to k_min\n";
+    return;
+  } else if (k_min < 1) {
+    cerr << "k_min must not be greater than 0\n";
+  } else if (rounds < 1) {
+    cerr << "Number of rounds must be greater than 0\n";
+    return;
+  }
+
+  dvectlist vectors;
+  long n = dvect_load(file, vectors);
+
+  if (n == 0) {
+    cout << "No data available in file: " << file << endl;
+    return;
+  } else if (n < 0) {
+    cout << "Failed to load the file: " << file << endl;
+    return;
+  }
+
+  int turns = k_max - k_min + 1;
+
+  kmeansresult* results[turns];
+  double bic_scores[turns];
+
+  for (int i = 0; i < turns; i++) {
+    int k = k_min + i;
+    kmeansresult* current_result = new kmeansresult(k);
+    stats_vector_kmeans(vectors, k, *current_result, rounds);
+    double bic = stats_vector_kmeans_bic(vectors, *current_result);
+    results[i] = current_result;
+    bic_scores[i] = bic;
+    cout << "k = " << k << "; BIC Score = " << bic << endl;
+  }
+
+  double max_bic = std::numeric_limits<double>::min();
+  int max_index = 0;
+  for (int i = 0; i < turns; i++) {
+    if (bic_scores[i] > max_bic) {
+      max_index = i;
+    }
+  }
+
+  int k = k_min + max_index;
+
+  cout << endl << "Chosen k value with the best BIC score: " << k << endl << endl;
+  for (int i = 0; i < k; i++) {
+    cout << "Cluster-" << i << ": " << (*results[max_index]).get_counts()->at(i) << " entries [ Centroid = "
+	 << dvect_tostring((*results[max_index]).get_centroids()->at(i)) << " ]\n";
+  }
+  cout << endl << "Distortion: " << (*results[max_index]).get_distortion() << endl;
+  cout << "Average Distortion: " << (*results[max_index]).get_distortion() / (long) vectors.size() << endl;
+  cout << "Squared Distance Distortion: " << (*results[max_index]).get_squared_distance_distortion() << endl;
+
+  if (verbose) {
+    cout << endl;
+    for (int i = 0; i < k; i++) {
+      cout << "Cluster-" << i << ":\n";
+      for (long j = 0; j < (long) vectors.size(); j++) {
+	if (i == (*results[max_index]).get_assignments()->at(j)) {
+	  cout << "  " << dvect_tostring(vectors.at(j)) << endl;
+	}
+      } 
+      cout << endl;
+    }
+  }
+
+  for (int i = 0; i < turns; i++) {
+    delete results[i];
   }
 }

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <cmath>
@@ -137,6 +138,10 @@ dvect stats_vector_centroid(const dvectlist & vectors) {
 }
 
 void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds) {
+  if (k < 1) {
+    throw std::runtime_error("k must not be less than 1");
+  }
+
   long dvect_size = (long) vectors.front().size();
   long n = (long) vectors.size();
   
@@ -202,6 +207,45 @@ void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & 
     result.increment_count(result.get_assignments()->at(i));
   }
   result.set_distortion(distortion);
+}
+
+double stats_vector_kmeans_bic(const dvectlist & vectors, const kmeansresult & result) {
+  long n = (long) vectors.size();
+  long m = (long) vectors.front().size();
+  int k = (int) result.get_centroids()->size();
+
+  if (n != (long) result.get_assignments()->size()) {
+    std::stringstream ss;
+    ss << "Assignment count mismatch; Expected: " << n << ", Found: " << result.get_assignments()->size();
+    throw std::runtime_error(ss.str());
+  }
+
+  const double ROOT_2_PI = sqrt(2 * 3.141592653589793);
+
+  double sigma_squared = (result.get_squared_distance_distortion()/(n - k));
+  double sigma = sqrt(sigma_squared);
+
+  double log_likelihood = 0.0;
+  double A = log(1/(ROOT_2_PI * pow(sigma, m)));
+
+  for (int i = 0; i < n; i++) {
+    dvect vector = vectors.at(i);
+    if (m != (long) vector.size()) {
+      std::stringstream ss;
+      ss << "Vector size mismatch; Expected: " << m << ", Found: " << vector.size();
+      throw std::runtime_error(ss.str());
+    }
+    int cluster = result.get_assignments()->at(i);
+    dvect centroid = result.get_centroids()->at(cluster);
+    double distance = stats_vector_euclidean_distance(vector, centroid);
+    double B = (1/(2 * sigma_squared)) *  distance * distance;
+    double C = log((result.get_counts()->at(cluster))/(double) n);
+    log_likelihood += (A - B + C);
+  }
+
+  long p = k + m * k;
+  double BIC = log_likelihood - ((p/2) * log(n));
+  return BIC;
 }
 
 double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2) {

@@ -18,11 +18,11 @@ class kmeansresult {
  public:
   kmeansresult(int k);
   ~kmeansresult();
-  const lvect* const get_counts() { return counts; };
-  const ivect* const get_assignments() { return assignments; };
-  const dvectlist* const get_centroids() { return centroids; };
-  const double get_squared_distance_distortion() { return sd_distortion; };
-  const double get_distortion() { return d_distortion; };
+  const lvect* const get_counts() const { return counts; };
+  const ivect* const get_assignments() const { return assignments; };
+  const dvectlist* const get_centroids() const { return centroids; };
+  const double get_squared_distance_distortion() const { return sd_distortion; };
+  const double get_distortion() const { return d_distortion; };
   void set_assignments(ivect* a);
   void set_centroids(dvectlist* c);
   void set_squared_distance_distortion(double d) { sd_distortion = d; };
@@ -39,5 +39,6 @@ double stats_max(const dvect & v);
 dvect stats_vector_centroid(const dvectlist & vectors);
 void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & result, const int rounds = 20);
 double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2);
+double stats_vector_kmeans_bic(const dvectlist & vectors, const kmeansresult & result);
 
 #endif
