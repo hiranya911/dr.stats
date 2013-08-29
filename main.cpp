@@ -194,6 +194,8 @@ void compute_vector_kmeans(const string & file, const int k, const int rounds, c
   kmeansresult result(k);
   stats_vector_kmeans(vectors, k, result, rounds);
 
+  cout << "Total data points: " << vectors.size() << endl << endl;
+
   for (int i = 0; i < k; i++) {
     cout << "Cluster-" << i << ": " << result.get_counts()->at(i) << " entries [ Centroid = "
 	 << dvect_tostring(result.get_centroids()->at(i)) << " ]\n";
@@ -253,17 +255,20 @@ void compute_vector_xmeans(const string & file, const int k_min, const int k_max
     cout << "k = " << k << "; BIC Score = " << bic << endl;
   }
 
-  double max_bic = std::numeric_limits<double>::min();
+  double max_bic = -std::numeric_limits<double>::max();
   int max_index = 0;
   for (int i = 0; i < turns; i++) {
     if (bic_scores[i] > max_bic) {
       max_index = i;
+      max_bic = bic_scores[i];
     }
   }
 
   int k = k_min + max_index;
 
-  cout << endl << "Chosen k value with the best BIC score: " << k << endl << endl;
+  cout << endl << "Chosen k value: " << k << " (with BIC score: " << max_bic << ")" << endl;
+  cout << "Total data points: " << vectors.size() << endl << endl;
+
   for (int i = 0; i < k; i++) {
     cout << "Cluster-" << i << ": " << (*results[max_index]).get_counts()->at(i) << " entries [ Centroid = "
 	 << dvect_tostring((*results[max_index]).get_centroids()->at(i)) << " ]\n";

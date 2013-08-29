@@ -105,7 +105,7 @@ double stats_min(const dvect & v) {
 
 double stats_max(const dvect & v) {
   validate_vector(v);
-  double max = std::numeric_limits<double>::min();
+  double max = -std::numeric_limits<double>::max();
   for (dvectciter it = v.begin(); it != v.end(); it++) {
     if (*it > max) {
       max = *it;
