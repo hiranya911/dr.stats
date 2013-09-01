@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <limits>
 
@@ -6,15 +7,17 @@
 #include "dvect.h"
 #include "stats.h"
 
+using std::cin;
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::string;
+using std::istream;
 
-void compute_simple_mode(const string & file);
-void compute_vector_centroid(const string & file);
-void compute_vector_kmeans(const string & file, const int k, const int rounds, const bool verbose);
-void compute_vector_xmeans(const string & file, const int k_min, const int k_max, const int rounds, const bool verbose);
+void compute_simple_mode(istream & in);
+void compute_vector_centroid(istream & in);
+void compute_vector_kmeans(istream & in, const int k, const int rounds, const bool verbose);
+void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const int rounds, const bool verbose);
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
@@ -28,7 +31,7 @@ int main(int argc, char** argv) {
     ("help,h", "Print help message")
     ("mode,m", po::value<string>(&mode)->required(), "Calculation mode")
     ("precision,p", po::value<int>(&precision), "Decimal point precision (for printing on the console)")
-    ("input,i", po::value<string>(&input_file)->required(), "Input file")
+    ("input,i", po::value<string>(&input_file), "Input file")
     ("clusters,k", po::value<string>(), "Number of clusters or cluster range (used for kmeans)")
     ("rounds,r", po::value<int>(), "Number of rounds to run the calculation")
     ("verbose,v", "Enable verbose output (only supported by some modes)")
@@ -54,10 +57,22 @@ int main(int argc, char** argv) {
     }
 
     cout.precision(precision);
+    istream* in = &cin;
+    if (input_file != "") {
+      in = new std::ifstream(input_file.c_str(), std::ifstream::in);
+      std::ifstream* fin = (std::ifstream*) in;
+      if (!(*fin)) {
+	cerr << "Failed to open input file: " << input_file << endl;
+	delete in;
+	return 1;
+      }
+    }
+    bool error = false;
+
     if (mode == "simple") {
-      compute_simple_mode(input_file);
+      compute_simple_mode(*in);
     } else if (mode == "cent") {
-      compute_vector_centroid(input_file);
+      compute_vector_centroid(*in);
     } else if (mode == "kmeans") {
       if (vm.count("clusters")) {
 	string k_str = vm["clusters"].as<string>();
@@ -70,10 +85,10 @@ int main(int argc, char** argv) {
 	if (vm.count("verbose")) {
 	  verbose = true;
 	}
-	compute_vector_kmeans(input_file, k, rounds, verbose);
+	compute_vector_kmeans(*in, k, rounds, verbose);
       } else {
 	cerr << "Error: k is required but missing\n";
-	return 1;
+	error = true;
       }
     } else if (mode == "xmeans") {
       if (vm.count("clusters")) {
@@ -86,7 +101,7 @@ int main(int argc, char** argv) {
 	}
 	if ((int) elems.size() != 2) {
 	  cerr << "k value must be specified as a range of the form k_min:k_max\n";
-	  return 1;
+	  error = true;
 	}
 
 	int k_min = atoi(elems.at(0).c_str());
@@ -100,13 +115,22 @@ int main(int argc, char** argv) {
 	if (vm.count("verbose")) {
 	  verbose = true;
 	}
-	compute_vector_xmeans(input_file, k_min, k_max, rounds, verbose);
+	compute_vector_xmeans(*in, k_min, k_max, rounds, verbose);
       } else {
 	cerr << "Error: k (range specifier) is required but missing\n";
-	return 1;
+	error = true;
       }
     } else {
       cerr << "Unsupported calculation mode: " << mode << endl;
+      error = true;
+    }
+
+    if (input_file != "") {
+      std::ifstream * fin = (std::ifstream*) in;
+      fin->close(); 
+      delete in;
+    }
+    if (error) {
       return 1;
     }
 
@@ -127,15 +151,12 @@ int main(int argc, char** argv) {
   return 0;
 }
 
-void compute_simple_mode(const string & file) {
+void compute_simple_mode(istream & in) {
   dvect numbers;
-  long size = dvect_load(file, numbers);
+  long size = dvect_load(in, numbers);
 
-  if (size == 0) {
-    cout << "No data available in file: " << file << endl;
-    return;
-  } else if (size < 0) {
-    cout << "Failed to load the file: " << file << endl;
+  if (size <=  0) {
+    cerr << "Failed to load any input data\n";
     return;
   }
 
@@ -152,15 +173,12 @@ void compute_simple_mode(const string & file) {
   cout << "Max: " << max << endl;
 }
 
-void compute_vector_centroid(const string & file) {
+void compute_vector_centroid(istream & in) {
   dvectlist vectors;
-  long size = dvect_load(file, vectors);
+  long size = dvect_load(in, vectors);
 
-  if (size == 0) {
-    cout << "No data available in file: " << file << endl;
-    return;
-  } else if (size < 0) {
-    cout << "Failed to load the file: " << file << endl;
+  if (size <= 0) {
+    cerr << "Failed to load any input data\n";
     return;
   }
 
@@ -171,7 +189,7 @@ void compute_vector_centroid(const string & file) {
   dvect_print(result);
 }
 
-void compute_vector_kmeans(const string & file, const int k, const int rounds, const bool verbose) {
+void compute_vector_kmeans(istream & in, const int k, const int rounds, const bool verbose) {
   if (k < 1) {
     cerr << "Cluster count (k) must be greater than 0\n";
     return;
@@ -181,13 +199,10 @@ void compute_vector_kmeans(const string & file, const int k, const int rounds, c
   }
 
   dvectlist vectors;
-  long n = dvect_load(file, vectors);
+  long n = dvect_load(in, vectors);
 
-  if (n == 0) {
-    cout << "No data available in file: " << file << endl;
-    return;
-  } else if (n < 0) {
-    cout << "Failed to load the file: " << file << endl;
+  if (n <= 0) {
+    cerr << "Failed to load any input data\n";
     return;
   }
 
@@ -218,7 +233,7 @@ void compute_vector_kmeans(const string & file, const int k, const int rounds, c
   }
 }
 
-void compute_vector_xmeans(const string & file, const int k_min, const int k_max, const int rounds, const bool verbose) {
+void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const int rounds, const bool verbose) {
   if (k_min > k_max) {
     cerr << "k_max must be greater than or equal to k_min\n";
     return;
@@ -230,13 +245,10 @@ void compute_vector_xmeans(const string & file, const int k_min, const int k_max
   }
 
   dvectlist vectors;
-  long n = dvect_load(file, vectors);
+  long n = dvect_load(in, vectors);
 
-  if (n == 0) {
-    cout << "No data available in file: " << file << endl;
-    return;
-  } else if (n < 0) {
-    cout << "Failed to load the file: " << file << endl;
+  if (n <= 0) {
+    cerr << "Failed to load any input data\n";
     return;
   }
 

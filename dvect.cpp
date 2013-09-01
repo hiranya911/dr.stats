@@ -1,26 +1,14 @@
 #include <iostream>
-#include <fstream>
 #include <sstream>
 #include <vector>
 
 #include "dvect.h"
 
-using std::cout;
-using std::string;
-
-void dvect_init(dvect & v, const string & line) {
-  std::stringstream ss(line);
-  double d;
-  while (ss >> d) {
-    v.push_back(d);
-  }
-}
-
 void dvect_print(const dvect & v) {
-  cout << dvect_tostring(v) << std::endl;
+  std::cout << dvect_tostring(v) << std::endl;
 }
 
-string dvect_tostring(const dvect & v) {
+std::string dvect_tostring(const dvect & v) {
   std::stringstream ss;
   ss << "(";
   for (dvectciter it = v.begin(); it != v.end(); ++it) {
@@ -33,39 +21,32 @@ string dvect_tostring(const dvect & v) {
   return ss.str();
 }
 
-long dvect_load(const string & file, dvect & numbers) {
+long dvect_load(std::istream & in, dvect & numbers) {
   long count = 0L;
-  std::ifstream input_file(file.c_str(), std::ifstream::in);
-  if (input_file) {
-    double n;
-    while (input_file >> n) {
-      numbers.push_back(n);
-      count++;
-    }
-    input_file.close();
-  } else {    
-    count = -1;
+  double n;
+  while (in >> n) {
+    numbers.push_back(n);
+    count++;
   }
   return count;
 }
 
-long dvect_load(const string & file, dvectlist & vectors) {
+long dvect_load(const std::string & str, dvect & numbers) {
+  std::stringstream ss(str);
+  return dvect_load(ss, numbers);
+}
+
+long dvect_load(std::istream & in, dvectlist & vectors) {
   long count = 0L;
-  std::ifstream input_file(file.c_str(), std::ifstream::in);
-  if (input_file) {
-    string line;
-    while (getline(input_file, line)) {
-      if (line.empty()) {
-	continue;
-      }
-      dvect v;
-      dvect_init(v, line);
-      vectors.push_back(v);
-      count++;
+  std::string line;
+  while (getline(in, line)) {
+    if (line.empty()) {
+      continue;
     }
-    input_file.close();
-  } else {
-    count = -1;
+    dvect v;
+    dvect_load(line, v);
+    vectors.push_back(v);
+    count++;
   }
   return count;
 }
