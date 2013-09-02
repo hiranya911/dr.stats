@@ -7,7 +7,6 @@
 #include "dvect.h"
 #include "stats.h"
 
-using std::cin;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -15,6 +14,7 @@ using std::string;
 using std::istream;
 
 void compute_simple_mode(istream & in);
+void compute_sort(istream & in);
 void compute_vector_centroid(istream & in);
 void compute_vector_kmeans(istream & in, const int k, const int rounds, const bool verbose);
 void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const int rounds, const bool verbose);
@@ -57,20 +57,23 @@ int main(int argc, char** argv) {
     }
 
     cout.precision(precision);
-    istream* in = &cin;
+    istream* in;
     if (input_file != "") {
       in = new std::ifstream(input_file.c_str(), std::ifstream::in);
-      std::ifstream* fin = (std::ifstream*) in;
-      if (!(*fin)) {
+      if (!*in) {
 	cerr << "Failed to open input file: " << input_file << endl;
 	delete in;
 	return 1;
       }
+    } else {
+      in = & std::cin;
     }
     bool error = false;
 
     if (mode == "simple") {
       compute_simple_mode(*in);
+    } else if (mode == "sort") {
+      compute_sort(*in);
     } else if (mode == "cent") {
       compute_vector_centroid(*in);
     } else if (mode == "kmeans") {
@@ -125,23 +128,16 @@ int main(int argc, char** argv) {
       error = true;
     }
 
-    if (input_file != "") {
+    if (in != & std::cin) {
       std::ifstream * fin = (std::ifstream*) in;
       fin->close(); 
       delete in;
     }
+
     if (error) {
       return 1;
     }
 
-  } catch (po::required_option & e) {
-    if (e.get_option_name() != "--input") {
-      cerr << "Error: " << e.what() << endl;
-    } else {
-      cerr << "Error: input file is required but missing\n";
-    }
-    cerr << "Exiting...\n";
-    return 1;
   } catch (std::exception & e) {
     cerr << "Error: " << e.what() << endl;
     cerr << "Exiting...\n";
@@ -171,6 +167,19 @@ void compute_simple_mode(istream & in) {
   cout << "Range: " << max - min << endl;
   cout << "Min: " << min << endl;
   cout << "Max: " << max << endl;
+}
+
+void compute_sort(istream & in) {
+  dvect numbers;
+  long size = dvect_load(in, numbers);
+
+  if (size <=  0) {
+    cerr << "Failed to load any input data\n";
+    return;
+  }
+
+  stats_sort(numbers);
+  cout << "Sorted result: " << dvect_tostring(numbers) << endl;
 }
 
 void compute_vector_centroid(istream & in) {

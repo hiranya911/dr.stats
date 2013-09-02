@@ -114,6 +114,10 @@ double stats_max(const dvect & v) {
   return max;
 }
 
+void stats_sort(dvect & v) {
+  std::sort(v.begin(), v.end());
+}
+
 dvect stats_vector_add(const dvectlist & vectors) {
   long dvect_size = (long) vectors.front().size();
   dvect result(dvect_size, 0.0);
@@ -159,6 +163,10 @@ void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & 
 
   long dvect_size = (long) vectors.front().size();
   long n = (long) vectors.size();
+
+  if (k > n) {
+    throw std::runtime_error("k must not be greater than the number of data points");
+  }
   
   result.set_squared_distance_distortion(std::numeric_limits<double>::max());
   srand(time(NULL));
