@@ -45,8 +45,15 @@ int main(int argc, char** argv) {
     po::store(po::command_line_parser(argc, argv).options(desc).positional(pos_desc).run(), vm);
     
     if (vm.count("help")) {
-      cout << "Usage: drstats [-h][-p PRECISION][-i INPUT_FILE] -m MODE input_file" << endl;
+      cout << "Dr. Stats is a simple command-line tool for scientific computations.\n\n";
+      cout << "Usage: drstats [-h][-p PRECISION][-i INPUT_FILE] -m MODE input_file\n\n";
       cout << desc << endl;
+      cout << "Supported calculation modes:\n";
+      cout << "  1. simple - Compute simple statistics on input data (mean, median, std. deviation etc.)\n";
+      cout << "  2. sort   - Sort the input data set in the ascending order\n";
+      cout << "  3. cent   - Compute the centroid (mean) of the given vector set\n";
+      cout << "  4. kmeans - Perform k-means clustering on the given vector set\n";
+      cout << "  5. xmeans - Perform x-means clustering on the given vector set\n";
       return 0;
     }
 
@@ -218,7 +225,7 @@ void compute_vector_kmeans(istream & in, const int k, const int rounds, const bo
   kmeansresult result(k);
   stats_vector_kmeans(vectors, k, result, rounds);
 
-  cout << "Total data points: " << vectors.size() << endl << endl;
+  cout << endl << "Total data points: " << vectors.size() << endl << endl;
 
   for (int i = 0; i < k; i++) {
     cout << "Cluster-" << i << ": " << result.get_counts()->at(i) << " entries [ Centroid = "

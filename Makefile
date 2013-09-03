@@ -18,3 +18,6 @@ dvect.o: dvect.h dvect.cpp
 
 clean:
 	rm drstats *.o *.gch
+
+install:
+	cp drstats /usr/local/bin
