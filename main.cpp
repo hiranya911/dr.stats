@@ -167,7 +167,14 @@ void compute_simple_mode(istream & in) {
   cout << "Total: " << stats_sum(numbers) << endl;
   cout << "Mean (Average): " << stats_mean(numbers) << endl;
   cout << "Std. Deviation: " << stats_stddev(numbers) << endl;
-  cout << "Median: " << stats_median(numbers) << endl;
+
+  const int p_count = 5;
+  int percentiles[p_count] = {5, 25, 50, 75, 95};
+  double p_results[p_count];
+  stats_percentiles(numbers, percentiles, p_results, p_count);
+  for (int i = 0; i < p_count; i++) {
+    cout << percentiles[i] << "-th Percentile: " << p_results[i] << endl;
+  }
 
   double min = stats_min(numbers);
   double max = stats_max(numbers);

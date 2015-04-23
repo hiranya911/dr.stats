@@ -92,6 +92,16 @@ double stats_median(const dvect & v) {
   }
 }
 
+void stats_percentiles(const dvect & v, int* percentiles, double* results, int length) {
+  validate_vector(v);
+  dvect numbers = v;
+  std::sort(numbers.begin(), numbers.end());
+  for (int i = 0; i < length; i++) {
+    int p_index = ceil(percentiles[i]/100.0 * v.size()) - 1;
+    results[i] = numbers.at(p_index);
+  }
+}
+
 double stats_min(const dvect & v) {
   validate_vector(v);
   double min = std::numeric_limits<double>::max();
