@@ -19,6 +19,7 @@ void compute_vector_centroid(istream & in);
 void compute_vector_kmeans(istream & in, const int k, const int rounds, const bool verbose);
 void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const int rounds, const bool verbose);
 void compute_cdf(istream & in);
+void compute_cdf2(istream & in);
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
@@ -30,12 +31,13 @@ int main(int argc, char** argv) {
   po::options_description desc("Options");
   desc.add_options()
     ("help,h", "Print help message")
-    ("mode,m", po::value<string>(&mode)->required(), "Calculation mode")
+    ("mode,m", po::value<string>(&mode), "Calculation mode")
     ("precision,p", po::value<int>(&precision), "Decimal point precision (for printing on the console)")
     ("input,i", po::value<string>(&input_file), "Input file")
     ("clusters,k", po::value<string>(), "Number of clusters or cluster range (used for kmeans)")
     ("rounds,r", po::value<int>(), "Number of rounds to run the calculation")
     ("verbose,v", "Enable verbose output (only supported by some modes)")
+    ("columns,c", "Treat multiple numbers in the same row as separate columns (used for cdf)")
     ;
 
   po::positional_options_description pos_desc; 
@@ -63,6 +65,8 @@ int main(int argc, char** argv) {
 
     if (vm.count("mode")) {
       mode = vm["mode"].as<string>();
+    } else {
+      mode = "simple";
     }
 
     cout.precision(precision);
@@ -133,7 +137,11 @@ int main(int argc, char** argv) {
 	error = true;
       }
     } else if (mode == "cdf") {
-      compute_cdf(*in);
+      if (vm.count("columns")) {
+	compute_cdf2(*in);
+      } else {
+	compute_cdf(*in);
+      }
     } else {
       cerr << "Unsupported calculation mode: " << mode << endl;
       error = true;
@@ -342,10 +350,36 @@ void compute_cdf(istream & in) {
     cerr << "Failed to load any input data\n";
     return;
   }
+  cout << "Treating all input numbers as members of a single distribution...\n\n";
+
   dvectlist result;
   stats_cdf(numbers, result);
   for (long i = 0; i < (long) result.size(); i++) {
     dvect entry = result.at(i);
-    cout << entry.at(0) << " " << entry.at(1) << endl;
+    cout << "[cdf] " << entry.at(0) << " " << entry.at(1) << endl;
+  }
+}
+
+void compute_cdf2(istream & in) {
+  dvectlist data;
+  long size = dvect_load(in, data);
+
+  if (size <= 0) {
+    cerr << "Failed to load any input data\n";
+    return;
+  }
+  for (long i = 0; i < (long) data.size(); i++) {
+    if (data.at(i).size() != 2) {
+      cerr << "Malformed columnar input -- each row must have exactly 2 columns: number frequency\n";
+      return;
+    }
+  }
+  cout << "Treating each row as a pair of the form <number,frequency>\n\n";
+
+  dvectlist result;
+  stats_cdf(data, result);
+  for (long i = 0; i < (long) result.size(); i++) {
+    dvect entry = result.at(i);
+    cout << "[cdf] " << entry.at(0) << " " << entry.at(1) << endl;
   }
 }

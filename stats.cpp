@@ -3,6 +3,7 @@
 #include <cmath>
 #include <set>
 #include <vector>
+#include <map>
 #include <cstdlib>
 #include <ctime>
 #include <limits>
@@ -312,6 +313,30 @@ void stats_cdf(const dvect & v, dvectlist & result) {
     prev = current;
   }
   add_entry(result, prev, count / size);
+}
+
+void stats_cdf(const dvectlist & list, dvectlist & result) {
+  std::map<double,double> data;
+  for (long i = 0; i < (long) list.size(); i++) {
+    dvect entry = list.at(i);
+    data[entry.front()] += entry.back();
+  }
+
+  dvect keys;
+  long total = 0L;
+  std::map<double,double>::iterator it;
+  for (it = data.begin(); it != data.end(); it++) {
+    keys.push_back(it->first);
+    total += it->second;
+  }
+  std::sort(keys.begin(), keys.end());
+
+  double count = 0.0;
+  for (long i = 0; i < (long) keys.size(); i++) {
+    double k = keys.at(i);
+    count += data[k];
+    add_entry(result, k, count/total);
+  }
 }
 
 void add_entry(dvectlist & result, double key, double value) {

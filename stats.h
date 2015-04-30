@@ -45,5 +45,6 @@ void stats_vector_kmeans(const dvectlist & vectors, const int k, kmeansresult & 
 double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2);
 double stats_vector_kmeans_bic(const dvectlist & vectors, const kmeansresult & result);
 void stats_cdf(const dvect & v, dvectlist & result);
+void stats_cdf(const dvectlist & list, dvectlist & result);
 
 #endif
