@@ -17,6 +17,7 @@ void validate_vector(const dvect & v);
 double within_cluster_squared_sum(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids);
 double within_cluster_distance(const dvectlist & vectors, const ivect* const assignments, const dvectlist* const centroids);
 void update_centroids(dvectlist* const centroids, const dvectlist & vectors, const ivect* const assignments);
+void add_entry(dvectlist & result, double key, double value);
 
 kmeansresult::kmeansresult(int k) {
   counts = new lvect(k, 0L);
@@ -292,6 +293,32 @@ double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2) {
     ss += (v1.at(i) - v2.at(i)) * (v1.at(i) - v2.at(i));
   }
   return sqrt(ss); 
+}
+
+void stats_cdf(const dvect & v, dvectlist & result) {
+  validate_vector(v);
+  double size = (double) v.size();
+  dvect numbers = v;
+  std::sort(numbers.begin(), numbers.end());
+
+  double prev = numbers.front();
+  long count = 0L;
+  for (long i = 0; i < (long) numbers.size(); i++) {
+    double current = numbers.at(i);
+    if (current != prev) {
+      add_entry(result, prev, count / size);
+    }
+    count++;
+    prev = current;
+  }
+  add_entry(result, prev, count / size);
+}
+
+void add_entry(dvectlist & result, double key, double value) {
+  dvect entry;
+  entry.push_back(key);
+  entry.push_back(value);
+  result.push_back(entry);
 }
 
 void update_centroids(dvectlist* const centroids, const dvectlist & vectors, const ivect* const assignments) {
