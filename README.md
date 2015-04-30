@@ -9,5 +9,5 @@ supports the following calculations:
  * X-means clustering of vectors using BIC scores (Based on the work of Pelleg and Moore)
  * Vector centroid computation
  * Euclidean distance calculation
-
+ * Histogram and CDF calculation
 
