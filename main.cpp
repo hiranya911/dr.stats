@@ -20,6 +20,7 @@ void compute_vector_kmeans(istream & in, const int k, const int rounds, const bo
 void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const int rounds, const bool verbose);
 void compute_cdf(istream & in);
 void compute_cdf2(istream & in);
+void compute_histo(istream & in);
 
 int main(int argc, char** argv) {
   namespace po = boost::program_options;
@@ -58,6 +59,7 @@ int main(int argc, char** argv) {
       cout << "  4. kmeans - Perform k-means clustering on the given vector set\n";
       cout << "  5. xmeans - Perform x-means clustering on the given vector set\n";
       cout << "  6. cdf    - Compute the cumulative distribution function (CDF) on input data\n";
+      cout << "  7. histo  - Compute the histogram on input data\n";
       return 0;
     }
 
@@ -142,6 +144,8 @@ int main(int argc, char** argv) {
       } else {
 	compute_cdf(*in);
       }
+    } else if (mode == "histo") {
+      compute_histo(*in);
     } else {
       cerr << "Unsupported calculation mode: " << mode << endl;
       error = true;
@@ -339,6 +343,23 @@ void compute_vector_xmeans(istream & in, const int k_min, const int k_max, const
 
   for (int i = 0; i < turns; i++) {
     delete results[i];
+  }
+}
+
+void compute_histo(istream & in) {
+  dvect numbers;
+  long size = dvect_load(in, numbers);
+
+  if (size <=  0) {
+    cerr << "Failed to load any input data\n";
+    return;
+  }
+
+  dvectlist result;
+  stats_histo(numbers, result);
+  for (long i = 0; i < (long) result.size(); i++) {
+    dvect entry = result.at(i);
+    cout << entry.at(0) << " " << entry.at(1) << endl;
   }
 }
 

@@ -296,23 +296,36 @@ double stats_vector_euclidean_distance(const dvect & v1, const dvect & v2) {
   return sqrt(ss); 
 }
 
-void stats_cdf(const dvect & v, dvectlist & result) {
+void stats_histo(const dvect & v, dvectlist & result) {
   validate_vector(v);
-  double size = (double) v.size();
-  dvect numbers = v;
-  std::sort(numbers.begin(), numbers.end());
-
-  double prev = numbers.front();
+  dvect copy = v;
+  std::sort(copy.begin(), copy.end());
+  
+  double prev = copy.front();
   long count = 0L;
-  for (long i = 0; i < (long) numbers.size(); i++) {
-    double current = numbers.at(i);
+  for (long i = 0; i < (long) copy.size(); i++) {
+    double current = copy.at(i);
     if (current != prev) {
-      add_entry(result, prev, count / size);
+      add_entry(result, prev, count);
+      count = 0L;
     }
     count++;
     prev = current;
   }
-  add_entry(result, prev, count / size);
+  add_entry(result, prev, count);
+}
+
+void stats_cdf(const dvect & v, dvectlist & result) {
+  dvectlist histo;
+  stats_histo(v, histo);
+  double size = v.size();
+
+  double cumulative = 0.0;
+  for (long i = 0; i < (long) histo.size(); i++) {
+    dvect entry = histo.at(i);
+    cumulative += entry.back();
+    add_entry(result, entry.front(), cumulative / size);
+  }
 }
 
 void stats_cdf(const dvectlist & list, dvectlist & result) {
